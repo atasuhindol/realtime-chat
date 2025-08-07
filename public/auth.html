@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Kullanıcı Giriş & Kayıt</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    form { margin-bottom: 20px; }
+    input { margin: 5px; }
+    #result { margin-top: 20px; color: green; }
+    #error { margin-top: 20px; color: red; }
+  </style>
+</head>
+<body>
+  <h2>Kayıt Ol</h2>
+  <form id="registerForm">
+    <input type="text" name="username" placeholder="Kullanıcı Adı" required>
+    <input type="email" name="email" placeholder="Email" required>
+    <input type="password" name="password" placeholder="Şifre" required>
+    <button type="submit">Kayıt Ol</button>
+  </form>
+
+  <h2>Giriş Yap</h2>
+  <form id="loginForm">
+    <input type="email" name="email" placeholder="Email" required>
+    <input type="password" name="password" placeholder="Şifre" required>
+    <button type="submit">Giriş Yap</button>
+  </form>
+
+  <button id="meBtn">Profilimi Göster</button>
+  <button id="logoutBtn">Çıkış Yap</button>
+
+  <div id="result"></div>
+  <div id="error"></div>
+
+  <script>
+    let token = null;
+
+    document.getElementById('registerForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: form.username.value,
+          email: form.email.value,
+          password: form.password.value
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        token = data.token;
+        document.getElementById('result').textContent = 'Kayıt başarılı! Token alındı.';
+        document.getElementById('error').textContent = '';
+      } else {
+        document.getElementById('error').textContent = data.message || JSON.stringify(data.errors);
+        document.getElementById('result').textContent = '';
+      }
+    };
+
+    document.getElementById('loginForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.email.value,
+          password: form.password.value
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        token = data.token;
+        document.getElementById('result').textContent = 'Giriş başarılı! Token alındı.';
+        document.getElementById('error').textContent = '';
+      } else {
+        document.getElementById('error').textContent = data.message || JSON.stringify(data.errors);
+        document.getElementById('result').textContent = '';
+      }
+    };
+
+    document.getElementById('meBtn').onclick = async () => {
+      if (!token) return alert('Önce giriş yapın!');
+      const res = await fetch('/api/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById('result').textContent = 'Profil: ' + JSON.stringify(data);
+        document.getElementById('error').textContent = '';
+      } else {
+        document.getElementById('error').textContent = data.message || 'Profil alınamadı';
+        document.getElementById('result').textContent = '';
+      }
+    };
+
+    document.getElementById('logoutBtn').onclick = async () => {
+      if (!token) return alert('Önce giriş yapın!');
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: token })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        token = null;
+        document.getElementById('result').textContent = 'Çıkış başarılı!';
+        document.getElementById('error').textContent = '';
+      } else {
+        document.getElementById('error').textContent = data.message || 'Çıkış başarısız';
+        document.getElementById('result').textContent = '';
+      }
+    };
+  </script>
+</body>
+</html>
